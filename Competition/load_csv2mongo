@@ -1,0 +1,9 @@
+#  Create database
+use tianchi
+#  Import csv to mongodb
+mongoimport -d tianchi -c items_table --type csv
+               --file C:\Users\wangjiang\Desktop\fresh_comp_offline\tianchi_fresh_comp_train_item.csv
+               --headerline
+mongoimport -d tianchi -c user_action_table --type csv
+               --file C:\Users\wangjiang\Desktop\fresh_comp_offline\tianchi_fresh_comp_train_user.csv
+               --headerline
