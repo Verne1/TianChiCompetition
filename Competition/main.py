@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from pymongo import MongoClient
-import pickle
 __author__ = 'Brown Wong'
 
 
@@ -46,38 +45,36 @@ def user_item_pairs():
     """
     :return: 一周数据中不重复的user_item pairs
     Step1:遍历一周的数据，找出所有的user_id item_id 对
-    Step2:取出重复pairs
-    Step3:去除item_table没有涉及的item_id的pairs
-    Step4:将user_item_pairs存入数据库
+    Step2:去除重复pairs，并将数据暂存数据库
+    Step3:去除item_table没有涉及的item_id的pairs,放入数据库另一张表
     """
     # Step1
     user_item_pairs_list = []
     one_week_table = get_collection('one_week_table')
     count = 0
     for record in one_week_table.find():
-        print str(int(count/6092231))+'%'
+        print 'step1: '+str(int(100.0*count/6092231))+'%'
         user_item_pairs_list.append((record['user_id'], record['item_id']))
         count += 1
     # Step2
-    list(set(user_item_pairs_list))
+    user_item_pairs_list = list(set(user_item_pairs_list))
     list_len = len(user_item_pairs_list)
-    # Step3
-    collection = get_collection('items_table')
-    need_delete_index = []  # 存放需要删除的pairs的下标
+    user_item_pairs_table_temp = get_collection('user_item_pairs_table_temp')
     count = 0
     for pair in user_item_pairs_list:
-        if collection.find_one({'item_id': pair[1]}) == None:
-            need_delete_index.append(count)
+        user_item_pairs_table_temp.insert_one({'user_id': pair[0], 'item_id': pair[1]})
+        print 'step2: '+str(int(100.0*count/(list_len-1)))+'%'
         count += 1
-        print str(int(count/list_len))+'%'
-    for index in need_delete_index:
-        user_item_pairs_list.remove(user_item_pairs_list.__getitem__(index))
-    # Step4
-    user_item_pairs_table = get_collection('user_item_pairs_table')
-    for pair in user_item_pairs_list:
-        user_item_pairs_table.insert_one({'user_id': pair[0], 'item_id': pair[1]})
+    # Step3
+    pairs_temp = get_collection('user_item_pairs_table_temp')
+    items_table = get_collection('items_table')
+    pairs = get_collection('user_item_pairs_table')
+    count = 0
+    for pair in pairs_temp.find():
+        if items_table.find({'item_id': pair['item_id']}).count() != 0:
+            pairs.insert_one(pair)
+        count += 1
+        print 'step3: '+str(int(100.0*count/2399169))+'%'
 
 
 user_item_pairs()
-
-
