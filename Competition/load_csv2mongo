@@ -18,3 +18,5 @@ db.target_matrix_table.ensureIndex({'user_id':1, 'item_id':1})
 db.one_week_table.ensureIndex({'user_id':1, 'item_id':1})
 # Create index for table_12_18
 db.table_12_18.ensureIndex({'user_id':1, 'item_id':1})
+# Create index for predict_matrix_table
+db.predict_matrix_table.ensureIndex({'user_id':1, 'item_id':1})

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from pymongo import MongoClient
+import logistic_regression as lr
+import numpy as np
 __author__ = 'Brown Wong'
 
 
@@ -145,4 +147,96 @@ def get_attr_value():
         print 'step4: '+str(int(100.0*count/216755))+'%'
 
 
-get_attr_value()
+# get_attr_value()
+def train_weights():
+    """
+    :return: weights 参数，是一个1x4的向量
+    步骤：
+    Step1:从数据库中获取data_matrix,label_matrix矩阵
+    Step2:求出weights
+    Step3:绘出散点图和决策边界
+    """
+    # Step1
+    data_matrix = []
+    label_matrix = []
+    target_matrix = get_collection('target_matrix_table')
+    count = 0
+    for example in target_matrix.find():
+        data_matrix.append([1, example['X0'], example['X1'], example['X2']])
+        label_matrix.append(example['label'])
+        count += 1
+        print 'step1: '+str(int(100.0*count/216755))+'%'
+    # Step2
+    weights = lr.gradient_ascent(data_matrix, label_matrix, max_cycles=3000)
+    # Step3
+    lr.plot_decision_boundary(weights, data_matrix, label_matrix)
+    return weights
+
+
+# print train_weights()
+def predict():
+    """
+    :return:
+    步骤：
+    1.构造预测矩阵
+    2.遍历18日数据，为X0赋值
+    3.遍历18日数据，为X1赋值
+    4.遍历11日至18日这八天的数据，为X2赋值
+    5.预测，将结果赋值为label
+    6.导出label为1的数据为csv文件
+    """
+    # Step1
+    # pairs = get_collection('user_item_pairs_table')
+    predict_matrix = get_collection('predict_matrix_table')
+    '''
+    count = 0
+    for pair in pairs.find():
+        predict_matrix.insert_one({'user_id': pair['user_id'], 'item_id': pair['item_id'],
+                                  'X0': 0, 'X1': 0, 'X2': 0, 'label': 0})
+        count += 1
+        print 'step1: '+str(int(100.0*count/216755))+'%'
+    '''
+    # Step2,Step3
+    table_12_18 = get_collection('table_12_18')
+    '''
+    count = 0
+    for example in predict_matrix.find():
+        x0 = table_12_18.find({'user_id': example['user_id'], 'item_id': example['item_id'],
+                              'behavior_type': 1}).count()
+        x1 = table_12_18.find({'user_id': example['user_id'], 'item_id': example['item_id'],
+                              'behavior_type': 3}).count()
+        if x0 != 0 or x1 != 0:
+            predict_matrix.update_one({'user_id': example['user_id'], 'item_id': example['item_id']},
+                                      {'$set': {'X0': x0, 'X1': x1}})
+        count += 1
+        print 'step2,3: '+str(int(100.0*count/216755))+'%'
+    '''
+    # Step4
+    '''
+    one_week_table = get_collection('one_week_table')
+    count = 0
+    for example in predict_matrix.find():
+        x2 = one_week_table.find({'user_id': example['user_id'], 'item_id': example['item_id'],
+                                 'behavior_type': 4}).count() + table_12_18.find({'user_id': example['user_id'],
+                                                                                  'item_id': example['item_id'],
+                                                                                  'behavior_type': 4}).count()
+        if x2 != 0:
+            predict_matrix.update_one({'user_id': example['user_id'], 'item_id': example['item_id']},
+                                      {'$set': {'X2': 1}})
+        count += 1
+        print 'step3: '+str(int(100.0*count/216755))+'%'
+    '''
+    # Step5
+    weights = train_weights()
+    count = 0
+    for example in predict_matrix.find():
+        label = lr.classify([1, example['X0'], example['X1'], example['X2']], weights)
+        if label == 1:
+            predict_matrix.update_one({'user_id': example['user_id'], 'item_id': example['item_id']},
+                                      {'$set': {'label': 1}})
+        count += 1
+        print 'step5: '+str(int(100.0*count/216755))+'%'
+    print weights
+
+#predict()
+weights = train_weights()
