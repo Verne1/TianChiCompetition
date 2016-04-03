@@ -10,3 +10,11 @@ mongoimport -d tianchi -c user_action_table --type csv
 
 # Create index for items_table
 db.items_table.ensureIndex({'item_id':1})
+# Create index for one_day_table
+db.one_day_table.ensureIndex({'user_id':1, 'item_id':1})
+# Create index for target_matrix_table
+db.target_matrix_table.ensureIndex({'user_id':1, 'item_id':1})
+# Create index for one_week_table
+db.one_week_table.ensureIndex({'user_id':1, 'item_id':1})
+# Create index for table_12_18
+db.table_12_18.ensureIndex({'user_id':1, 'item_id':1})

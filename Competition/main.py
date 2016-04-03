@@ -18,7 +18,7 @@ def get_one_day_data():
     描述：从user_table表中获取2014-12-17这一天的数据子集放入one_day_table表
     """
     user_table = get_collection('user_action_table')
-    one_day_table = get_collection('one_day_table')
+    one_day_table = get_collection('one_day_tab;e')
     count = 0
     for record in user_table.find():
         if '2014-12-17 00' <= record['time'] < '2014-12-18 00':
@@ -77,4 +77,72 @@ def user_item_pairs():
         print 'step3: '+str(int(100.0*count/2399169))+'%'
 
 
-user_item_pairs()
+def target_matrix_empty():
+    """
+    :return:
+    描述：
+    根据数据库中的不重复的user item对生成空的目标矩阵，并保存到数据库。
+    空是指X0，X1，X2，Label这四个属性为空
+    """
+    pairs = get_collection('user_item_pairs_table')
+    target_matrix = get_collection('target_matrix_table')
+    count = 0
+    for pair in pairs.find():
+        target_matrix.insert_one({'user_id': pair['user_id'], 'item_id': pair['item_id'],
+                                  'X0': 0, 'X1': 0, 'X2': 0, 'label': 0})
+        count += 1
+        print 'step1: '+str(int(100.0*count/216755))+'%'
+
+
+# target_matrix_empty()
+def get_attr_value():
+    """
+    :return:
+    描述：
+    为X0，X1，X2，label属性赋值
+    步骤：
+    Step1：为X0赋值
+    Step2：为X1赋值
+    Step3：为X2赋值
+    Step4为label赋值
+    """
+
+    # Step1,Step2
+    target_matrix = get_collection('target_matrix_table')
+    one_day_table = get_collection('one_day_table')
+    count = 0
+    for example in target_matrix.find():
+        x0 = one_day_table.find({'user_id': example['user_id'], 'item_id': example['item_id'],
+                                'behavior_type': 1}).count()
+        x1 = one_day_table.find({'user_id': example['user_id'], 'item_id': example['item_id'],
+                                'behavior_type': 3}).count()
+        if x0 != 0 or x1 != 0:
+            target_matrix.update_one({'user_id': example['user_id'], 'item_id': example['item_id']},
+                                     {'$set': {'X0': x0, 'X1': x1}})
+        count += 1
+        print 'step1,2: '+str(int(100.0*count/216755))+'%'
+    # Step3
+    one_week_table = get_collection('one_week_table')
+    count = 0
+    for example in target_matrix.find():
+        x2 = one_week_table.find({'user_id': example['user_id'], 'item_id': example['item_id'],
+                                 'behavior_type': 4}).count()
+        if x2 != 0:
+            target_matrix.update_one({'user_id': example['user_id'], 'item_id': example['item_id']},
+                                     {'$set': {'X2': 1}})
+        count += 1
+        print 'step3: '+str(int(100.0*count/216755))+'%'
+    # Step4
+    table_12_18 = get_collection('table_12_18')
+    count = 0
+    for example in target_matrix.find():
+        label = table_12_18.find({'user_id': example['user_id'], 'item_id': example['item_id'],
+                                 'behavior_type': 4}).count()
+        if label != 0:
+            target_matrix.update_one({'user_id': example['user_id'], 'item_id': example['item_id']},
+                                     {'$set': {'label': 1}})
+        count += 1
+        print 'step4: '+str(int(100.0*count/216755))+'%'
+
+
+get_attr_value()
